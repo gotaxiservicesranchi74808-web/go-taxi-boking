@@ -1,51 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>GO TAXI SERVICES – Booking View</title>
 
 <style>
-body{
-  font-family: Arial, sans-serif;
-  background:#f4f6f8;
-  padding:20px;
-}
-h2{
-  color:#1e88e5;
-}
-table{
-  width:100%;
-  border-collapse:collapse;
-  background:#fff;
-}
-th, td{
-  border:1px solid #ddd;
-  padding:8px;
-  text-align:left;
-  font-size:14px;
-}
-th{
-  background:#1e88e5;
-  color:#fff;
-}
-tr:nth-child(even){
-  background:#f9f9f9;
-}
-.btn{
-  padding:5px 8px;
-  background:#25D366;
-  color:#fff;
-  text-decoration:none;
-  border-radius:4px;
-  font-size:12px;
-}
-.btn-driver{
-  background:#1e88e5;
-}
-.center{
-  text-align:center;
-  margin-top:20px;
-}
+body{font-family:Arial;background:#f4f6f8;padding:20px}
+h2{color:#1e88e5}
+table{width:100%;border-collapse:collapse;background:#fff}
+th,td{border:1px solid #ccc;padding:8px;font-size:14px}
+th{background:#1e88e5;color:#fff}
+button{padding:5px 8px;margin:2px;background:#1e88e5;color:#fff;border:none;border-radius:4px;cursor:pointer}
+button:hover{background:#1565c0}
 </style>
 </head>
 
@@ -53,138 +19,123 @@ tr:nth-child(even){
 
 <h2>🚖 GO TAXI SERVICES – Booking View</h2>
 
-<table>
+<table id="bookingTable">
 <thead>
 <tr>
-  <th>Trip ID</th>
-  <th>Trip</th>
-  <th>Pickup Date</th>
-  <th>Pickup Time</th>
-  <th>Route</th>
-  <th>Cab</th>
-  <th>Customer</th>
-  <th>Driver</th>
-  <th>Amount</th>
-  <th>Share</th>
+<th>Trip ID</th>
+<th>Trip</th>
+<th>Date</th>
+<th>Time</th>
+<th>Route</th>
+<th>Cab</th>
+<th>Customer</th>
+<th>Driver</th>
+<th>Action</th>
 </tr>
 </thead>
-
-<tbody id="bookingBody">
-<tr>
-  <td colspan="10" class="center">Loading bookings...</td>
-</tr>
-</tbody>
+<tbody></tbody>
 </table>
 
 <script>
-const SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
+/* 🔴 YAHAN APNA WEB APP URL DALO */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
 
 fetch(SCRIPT_URL)
-  .then(res => res.json())
-  .then(result => {
+.then(res => res.json())
+.then(result => {
 
-    if (!result.data || result.data.length <= 1) {
-      document.getElementById("bookingBody").innerHTML =
-        "<tr><td colspan='10'>No booking found</td></tr>";
-      return;
-    }
+  const rows = result.data;
+  const tbody = document.querySelector("#bookingTable tbody");
 
-    const rows = result.data;
-    let html = "";
+  if(!rows || rows.length <= 1){
+    tbody.innerHTML = "<tr><td colspan='9'>NO BOOKING FOUND</td></tr>";
+    return;
+  }
 
-    for (let i = 1; i < rows.length; i++) {
-      const r = rows[i];
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i];
 
-      const tripId = r[0];
-      const tripType = r[1];
-      const pickupDate = r[2] ? r[2].toString().split("T")[0] : "";
-      const pickupTime = r[3] || "";
-      const cab = `${r[4]} (${r[5]})`;
-      const route = `${r[6]} → ${r[7]} → ${r[8]}`;
-      const customer = `${r[9]} (${r[10]})`;
-      const driver = `${r[11]} (${r[12]})`;
-      const amount = r[13] || "—";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${r[0]}</td>
+      <td>${r[1]}</td>
+      <td>${formatDate(r[2])}</td>
+      <td>${r[3]}</td>
+      <td>${r[6]} → ${r[7]} → ${r[8]}</td>
+      <td>${r[4]} (${r[5]})</td>
+      <td>${r[9]}<br>${r[10]}</td>
+      <td>${r[11]}<br>${r[12]}</td>
+      <td>
+        <button onclick='shareCustomer(${JSON.stringify(r)})'>Customer</button>
+        <button onclick='shareDriver(${JSON.stringify(r)})'>Driver</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+})
+.catch(err=>{
+  document.querySelector("#bookingTable tbody")
+  .innerHTML="<tr><td colspan='9'>ERROR LOADING DATA</td></tr>";
+});
 
-      const customerMsg =
-`GO TAXI SERVICES
-Booking ID: ${tripId}
-Trip: ${tripType}
+/* DATE FIX */
+function formatDate(d){
+  if(!d) return "";
+  const dt = new Date(d);
+  return dt.toLocaleDateString("en-IN");
+}
 
-Pickup Date: ${pickupDate}
-Pickup Time: ${pickupTime}
+/* SHARE CUSTOMER */
+function shareCustomer(r){
+let msg=`GO TAXI SERVICES
+Booking ID: ${r[0]}
+Trip: ${r[1]}
+
+Pickup Date: ${formatDate(r[2])}
+Pickup Time: ${r[3]}
 
 Route:
-${route}
+${r[6]} → ${r[7]} → ${r[8]}
 
-Cab: ${cab}
+Cab: ${r[4]}
+Cab No: ${r[5]}
 
-Total Fare: ₹${r[13] || ""}
-Advance: ₹${r[14] || 0}
-Balance: ₹${r[15] || ""}
+Total Fare: ₹${r[13]}
+Advance: ₹${r[14]}
+Balance: ₹${r[15]}
 
 Driver: ${r[11]} (${r[12]})
 
 Contact: 8434143546
 Website: https://gotaxiservices.com
-Map: https://share.google/vI2VbDezpUTvdtzs3
 Review: https://g.page/r/CbVg3mitMnAEEBM/review`;
 
-      const driverMsg =
-`GO TAXI SERVICES – DRIVER TRIP
-Booking ID: ${tripId}
+window.open("https://wa.me/?text="+encodeURIComponent(msg));
+}
 
-Pickup Date: ${pickupDate}
-Pickup Time: ${pickupTime}
+/* SHARE DRIVER */
+function shareDriver(r){
+let msg=`GO TAXI SERVICES – DRIVER TRIP
+Booking ID: ${r[0]}
+
+Pickup Date: ${formatDate(r[2])}
+Pickup Time: ${r[3]}
 
 Customer: ${r[9]} (${r[10]})
 
 Route:
-${route}
+${r[6]} → ${r[7]} → ${r[8]}
 
-Cab: ${cab}
+Cab: ${r[4]}
+Cab No: ${r[5]}
 
-Your Collection: ₹${r[16] || ""}
+Your Collection: ₹${r[16]}
 
 Office: 8434143546`;
 
-      html += `
-      <tr>
-        <td>${tripId}</td>
-        <td>${tripType}</td>
-        <td>${pickupDate}</td>
-        <td>${pickupTime}</td>
-        <td>${route}</td>
-        <td>${cab}</td>
-        <td>${customer}</td>
-        <td>${driver}</td>
-        <td>₹${amount}</td>
-        <td>
-          <a class="btn"
-             target="_blank"
-             href="https://wa.me/91${r[10]}?text=${encodeURIComponent(customerMsg)}">
-             Customer
-          </a>
-          <br><br>
-          <a class="btn btn-driver"
-             target="_blank"
-             href="https://wa.me/91${r[12]}?text=${encodeURIComponent(driverMsg)}">
-             Driver
-          </a>
-        </td>
-      </tr>
-      `;
-    }
-
-    document.getElementById("bookingBody").innerHTML = html;
-  })
-  .catch(err => {
-    console.error(err);
-    document.getElementById("bookingBody").innerHTML =
-      "<tr><td colspan='10'>Error loading data</td></tr>";
-  });
+window.open("https://wa.me/?text="+encodeURIComponent(msg));
+}
 </script>
 
 </body>
 </html>
-
