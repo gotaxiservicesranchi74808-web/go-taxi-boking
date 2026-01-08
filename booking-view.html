@@ -5,135 +5,184 @@
 <title>GO TAXI SERVICES – Booking View</title>
 
 <style>
-body{font-family:Arial;background:#f4f6f8;padding:20px}
-h2{color:#1e88e5}
-table{width:100%;border-collapse:collapse;background:#fff}
-th,td{border:1px solid #ddd;padding:8px;text-align:left}
-th{background:#1e88e5;color:#fff}
-button{padding:5px 10px;margin:2px;border:none;border-radius:4px;cursor:pointer}
-.view{background:#4caf50;color:#fff}
-.cus{background:#2196f3;color:#fff}
-.drv{background:#ff9800;color:#fff}
+body{
+  font-family: Arial, sans-serif;
+  background:#f4f6f8;
+  padding:20px;
+}
+h2{
+  color:#1e88e5;
+}
+table{
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+}
+th, td{
+  border:1px solid #ddd;
+  padding:8px;
+  text-align:left;
+  font-size:14px;
+}
+th{
+  background:#1e88e5;
+  color:#fff;
+}
+tr:nth-child(even){
+  background:#f9f9f9;
+}
+.btn{
+  padding:5px 8px;
+  background:#25D366;
+  color:#fff;
+  text-decoration:none;
+  border-radius:4px;
+  font-size:12px;
+}
+.btn-driver{
+  background:#1e88e5;
+}
+.center{
+  text-align:center;
+  margin-top:20px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>📋 ALL BOOKINGS</h2>
+<h2>🚖 GO TAXI SERVICES – Booking View</h2>
 
 <table>
 <thead>
 <tr>
-<th>Trip ID</th>
-<th>Trip</th>
-<th>Pickup Date</th>
-<th>Customer</th>
-<th>Action</th>
+  <th>Trip ID</th>
+  <th>Trip</th>
+  <th>Pickup Date</th>
+  <th>Pickup Time</th>
+  <th>Route</th>
+  <th>Cab</th>
+  <th>Customer</th>
+  <th>Driver</th>
+  <th>Amount</th>
+  <th>Share</th>
 </tr>
 </thead>
-<tbody id="bookingTable"></tbody>
+
+<tbody id="bookingBody">
+<tr>
+  <td colspan="10" class="center">Loading bookings...</td>
+</tr>
+</tbody>
 </table>
 
 <script>
 const SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbzyI3uVrcrj3N6H7vhhbFKzy7PAYEKQAMRpOKQKVd8z8eepLRHSksdpviSbx12cruL-OQ/exec";
+"https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
 
 fetch(SCRIPT_URL)
-.then(res=>res.json())
-.then(data=>{
-  let html="";
-  data.slice(1).forEach(b=>{
-    html+=`
-    <tr>
-      <td>${b.tripId||""}</td>
-      <td>${b.tripType||""}</td>
-      <td>${b.pickupDate||""}</td>
-      <td>${b.customerName||""}</td>
-      <td>
-        <button class="view" onclick='viewBooking(${JSON.stringify(b)})'>View</button>
-        <button class="cus" onclick='shareCustomer(${JSON.stringify(b)})'>Customer</button>
-        <button class="drv" onclick='shareDriver(${JSON.stringify(b)})'>Driver</button>
-      </td>
-    </tr>`;
-  });
-  bookingTable.innerHTML=html;
-});
+  .then(res => res.json())
+  .then(result => {
 
-function viewBooking(b){
-alert(
-`🚖 BOOKING DETAILS
+    if (!result.data || result.data.length <= 1) {
+      document.getElementById("bookingBody").innerHTML =
+        "<tr><td colspan='10'>No booking found</td></tr>";
+      return;
+    }
 
-Trip ID: ${b.tripId}
-Trip Type: ${b.tripType}
+    const rows = result.data;
+    let html = "";
 
-Pickup Date: ${b.pickupDate}
-Pickup Time: ${b.pickupTime}
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
 
-Customer: ${b.customerName} (${b.customerPhone})
-Driver: ${b.driverName} (${b.driverPhone})
+      const tripId = r[0];
+      const tripType = r[1];
+      const pickupDate = r[2] ? r[2].toString().split("T")[0] : "";
+      const pickupTime = r[3] || "";
+      const cab = `${r[4]} (${r[5]})`;
+      const route = `${r[6]} → ${r[7]} → ${r[8]}`;
+      const customer = `${r[9]} (${r[10]})`;
+      const driver = `${r[11]} (${r[12]})`;
+      const amount = r[13] || "—";
 
-Cab: ${b.cabType}
-Cab No: ${b.cabNo}
+      const customerMsg =
+`GO TAXI SERVICES
+Booking ID: ${tripId}
+Trip: ${tripType}
+
+Pickup Date: ${pickupDate}
+Pickup Time: ${pickupTime}
 
 Route:
-${b.pickup} → ${b.goingOn} → ${b.drop}
+${route}
 
-Total Fare: ₹${b.totalAmount}
-Advance: ₹${b.advance}
-Balance: ₹${b.balance}
-Driver Collection: ₹${b.driverCollection}`
-);
-}
+Cab: ${cab}
 
-function shareCustomer(b){
-let msg=`GO TAXI SERVICES
-Booking ID: ${b.tripId}
-Trip: ${b.tripType}
+Total Fare: ₹${r[13] || ""}
+Advance: ₹${r[14] || 0}
+Balance: ₹${r[15] || ""}
 
-Pickup Date: ${b.pickupDate}
-Pickup Time: ${b.pickupTime}
-
-Route:
-${b.pickup} → ${b.goingOn} → ${b.drop}
-
-Cab: ${b.cabType}
-Cab No: ${b.cabNo}
-
-Total Fare: ₹${b.totalAmount}
-Advance: ₹${b.advance}
-Balance: ₹${b.balance}
-
-Driver: ${b.driverName} (${b.driverPhone})
+Driver: ${r[11]} (${r[12]})
 
 Contact: 8434143546
 Website: https://gotaxiservices.com
 Map: https://share.google/vI2VbDezpUTvdtzs3
 Review: https://g.page/r/CbVg3mitMnAEEBM/review`;
 
-window.open("https://wa.me/?text="+encodeURIComponent(msg));
-}
+      const driverMsg =
+`GO TAXI SERVICES – DRIVER TRIP
+Booking ID: ${tripId}
 
-function shareDriver(b){
-let msg=`GO TAXI SERVICES – DRIVER TRIP
-Booking ID: ${b.tripId}
+Pickup Date: ${pickupDate}
+Pickup Time: ${pickupTime}
 
-Pickup Date: ${b.pickupDate}
-Pickup Time: ${b.pickupTime}
-
-Customer: ${b.customerName} (${b.customerPhone})
+Customer: ${r[9]} (${r[10]})
 
 Route:
-${b.pickup} → ${b.goingOn} → ${b.drop}
+${route}
 
-Cab: ${b.cabType}
-Cab No: ${b.cabNo}
+Cab: ${cab}
 
-Your Collection: ₹${b.driverCollection}
+Your Collection: ₹${r[16] || ""}
 
 Office: 8434143546`;
 
-window.open("https://wa.me/?text="+encodeURIComponent(msg));
-}
+      html += `
+      <tr>
+        <td>${tripId}</td>
+        <td>${tripType}</td>
+        <td>${pickupDate}</td>
+        <td>${pickupTime}</td>
+        <td>${route}</td>
+        <td>${cab}</td>
+        <td>${customer}</td>
+        <td>${driver}</td>
+        <td>₹${amount}</td>
+        <td>
+          <a class="btn"
+             target="_blank"
+             href="https://wa.me/91${r[10]}?text=${encodeURIComponent(customerMsg)}">
+             Customer
+          </a>
+          <br><br>
+          <a class="btn btn-driver"
+             target="_blank"
+             href="https://wa.me/91${r[12]}?text=${encodeURIComponent(driverMsg)}">
+             Driver
+          </a>
+        </td>
+      </tr>
+      `;
+    }
+
+    document.getElementById("bookingBody").innerHTML = html;
+  })
+  .catch(err => {
+    console.error(err);
+    document.getElementById("bookingBody").innerHTML =
+      "<tr><td colspan='10'>Error loading data</td></tr>";
+  });
 </script>
 
 </body>
