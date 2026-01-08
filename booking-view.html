@@ -7,104 +7,88 @@
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:20px}
 h2{color:#1e88e5}
-table{width:100%;border-collapse:collapse;background:#fff}
-th,td{border:1px solid #ccc;padding:8px;font-size:14px}
-th{background:#1e88e5;color:#fff}
-button{padding:5px 8px;margin:2px;background:#1e88e5;color:#fff;border:none;border-radius:4px;cursor:pointer}
-button:hover{background:#1565c0}
+.card{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px;box-shadow:0 0 5px rgba(0,0,0,.1)}
+.btn{padding:8px 12px;background:#1e88e5;color:#fff;border:none;border-radius:5px;cursor:pointer;margin-right:5px}
+.btn:hover{background:#1565c0}
+small{color:#555}
 </style>
 </head>
 
 <body>
 
-<h2>🚖 GO TAXI SERVICES – Booking View</h2>
-
-<table id="bookingTable">
-<thead>
-<tr>
-<th>Trip ID</th>
-<th>Trip</th>
-<th>Date</th>
-<th>Time</th>
-<th>Route</th>
-<th>Cab</th>
-<th>Customer</th>
-<th>Driver</th>
-<th>Action</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
+<h2>📋 All Bookings</h2>
+<div id="list">Loading…</div>
 
 <script>
-
-"https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
 
 fetch(SCRIPT_URL)
-.then(res => res.json())
-.then(result => {
+.then(r => r.json())
+.then(bookings => {
 
-  const rows = result.data;
-  const tbody = document.querySelector("#bookingTable tbody");
-
-  if(!rows || rows.length <= 1){
-    tbody.innerHTML = "<tr><td colspan='9'>NO BOOKING FOUND</td></tr>";
+  if (!Array.isArray(bookings) || bookings.length === 0) {
+    document.getElementById("list").innerHTML = "<b>No Booking Found</b>";
     return;
   }
 
-  for(let i=1;i<rows.length;i++){
-    const r = rows[i];
+  let html = "";
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${r[0]}</td>
-      <td>${r[1]}</td>
-      <td>${formatDate(r[2])}</td>
-      <td>${r[3]}</td>
-      <td>${r[6]} → ${r[7]} → ${r[8]}</td>
-      <td>${r[4]} (${r[5]})</td>
-      <td>${r[9]}<br>${r[10]}</td>
-      <td>${r[11]}<br>${r[12]}</td>
-      <td>
-        <button onclick='shareCustomer(${JSON.stringify(r)})'>Customer</button>
-        <button onclick='shareDriver(${JSON.stringify(r)})'>Driver</button>
-      </td>
+  bookings.reverse().forEach(b => {
+
+    html += `
+    <div class="card">
+      <b>Trip ID:</b> ${b.tripId}<br>
+      <b>Trip:</b> ${b.tripType}<br>
+      <b>Date:</b> ${formatDate(b.pickupDate)}<br>
+      <b>Time:</b> ${b.pickupTime}<br><br>
+
+      <b>Customer:</b> ${b.customerName} (${b.customerPhone})<br>
+      <b>Driver:</b> ${b.driverName} (${b.driverPhone})<br><br>
+
+      <b>Route:</b><br>
+      ${b.pickup} → ${b.goingOn} → ${b.drop}<br><br>
+
+      <b>Cab:</b> ${b.cabType}<br>
+      <b>Cab No:</b> ${b.cabNo}<br><br>
+
+      <b>Total:</b> ₹${b.totalAmount || "-"} |
+      <b>Advance:</b> ₹${b.advance || 0} |
+      <b>Balance:</b> ₹${b.balance || "-"}<br>
+      <b>Driver Collection:</b> ₹${b.driverCollection || "-"}<br><br>
+
+      <button class="btn" onclick='shareCustomer(${JSON.stringify(b)})'>Customer</button>
+      <button class="btn" onclick='shareDriver(${JSON.stringify(b)})'>Driver</button>
+    </div>
     `;
-    tbody.appendChild(tr);
-  }
-})
-.catch(err=>{
-  document.querySelector("#bookingTable tbody")
-  .innerHTML="<tr><td colspan='9'>ERROR LOADING DATA</td></tr>";
+  });
+
+  document.getElementById("list").innerHTML = html;
 });
 
-/* DATE FIX */
 function formatDate(d){
   if(!d) return "";
-  const dt = new Date(d);
-  return dt.toLocaleDateString("en-IN");
+  return new Date(d).toLocaleDateString("en-IN");
 }
 
-/* SHARE CUSTOMER */
-function shareCustomer(r){
+function shareCustomer(b){
 let msg=`GO TAXI SERVICES
-Booking ID: ${r[0]}
-Trip: ${r[1]}
+Booking ID: ${b.tripId}
+Trip: ${b.tripType}
 
-Pickup Date: ${formatDate(r[2])}
-Pickup Time: ${r[3]}
+Pickup Date: ${formatDate(b.pickupDate)}
+Pickup Time: ${b.pickupTime}
 
 Route:
-${r[6]} → ${r[7]} → ${r[8]}
+${b.pickup} → ${b.goingOn} → ${b.drop}
 
-Cab: ${r[4]}
-Cab No: ${r[5]}
+Cab: ${b.cabType}
+Cab No: ${b.cabNo}
 
-Total Fare: ₹${r[13]}
-Advance: ₹${r[14]}
-Balance: ₹${r[15]}
+Total Fare: ₹${b.totalAmount}
+Advance: ₹${b.advance}
+Balance: ₹${b.balance}
 
-Driver: ${r[11]} (${r[12]})
+Driver: ${b.driverName} (${b.driverPhone})
 
 Contact: 8434143546
 Website: https://gotaxiservices.com
@@ -113,23 +97,22 @@ Review: https://g.page/r/CbVg3mitMnAEEBM/review`;
 window.open("https://wa.me/?text="+encodeURIComponent(msg));
 }
 
-/* SHARE DRIVER */
-function shareDriver(r){
+function shareDriver(b){
 let msg=`GO TAXI SERVICES – DRIVER TRIP
-Booking ID: ${r[0]}
+Booking ID: ${b.tripId}
 
-Pickup Date: ${formatDate(r[2])}
-Pickup Time: ${r[3]}
+Pickup Date: ${formatDate(b.pickupDate)}
+Pickup Time: ${b.pickupTime}
 
-Customer: ${r[9]} (${r[10]})
+Customer: ${b.customerName} (${b.customerPhone})
 
 Route:
-${r[6]} → ${r[7]} → ${r[8]}
+${b.pickup} → ${b.goingOn} → ${b.drop}
 
-Cab: ${r[4]}
-Cab No: ${r[5]}
+Cab: ${b.cabType}
+Cab No: ${b.cabNo}
 
-Your Collection: ₹${r[16]}
+Your Collection: ₹${b.driverCollection}
 
 Office: 8434143546`;
 
@@ -139,4 +122,3 @@ window.open("https://wa.me/?text="+encodeURIComponent(msg));
 
 </body>
 </html>
-
