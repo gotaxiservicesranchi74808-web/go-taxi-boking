@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <title>GO TAXI SERVICES – Driver Bookings</title>
+
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:20px}
 h2{color:#1e88e5;text-align:center}
 .card{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px;box-shadow:0 0 5px rgba(0,0,0,.1)}
-.btn{padding:8px 12px;background:#1e88e5;color:#fff;border:none;border-radius:5px;cursor:pointer;margin-right:5px;margin-top:5px}
+.btn{padding:8px 12px;background:#1e88e5;color:#fff;border:none;border-radius:5px;cursor:pointer;margin-top:10px}
 .btn:hover{background:#1565c0}
-small{color:#555}
 </style>
 </head>
+
 <body>
 
 <h2>📋 My Assigned Bookings</h2>
@@ -21,62 +22,63 @@ small{color:#555}
 const driverMobile = (localStorage.getItem("driverMobile") || "").trim();
 if(!driverMobile){
   alert("Please login first");
-  window.location.href="index.html";
+  window.location.href = "index.html";
 }
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
 
 fetch(SCRIPT_URL)
-.then(r => r.json())
+.then(res => res.json())
 .then(result => {
-  const bookings = result.data;
+
+  const bookings = result.data || [];
 
   console.log("Driver Mobile:", driverMobile);
-  console.log("All Bookings:", bookings);
+  console.log("All bookings:", bookings);
 
-  // Filter by driver mobile and Trip_Status = Assigned
-  const filteredBookings = bookings.filter(b => 
-    String(b.Assigned_Driver_Mobile || "").trim() === driverMobile &&
-    String(b.Trip_Status || "").trim() === "Assigned"
-  );
+  // 🔥 FINAL ROBUST FILTER (tumhara wala)
+  const filteredBookings = bookings.filter(b => {
+    const sheetMobile = String(b.Assigned_Driver_Mobile || "").trim();
+    const status = String(b.Trip_Status || "").trim();
+    return sheetMobile === driverMobile && status.toLowerCase() === "assigned";
+  });
 
-  console.log("Filtered Bookings:", filteredBookings);
+  console.log("Filtered bookings:", filteredBookings);
 
-  let html = "";
   if(filteredBookings.length === 0){
-    html = "<b>No assigned bookings</b>";
-  } else {
-    filteredBookings.reverse().forEach(b => {
-      html += `
-      <div class="card">
-        <b>Trip ID:</b> ${b.tripId || "-"}<br>
-        <b>Trip Type:</b> ${b.tripType || "-"}<br>
-        <b>Date:</b> ${formatDate(b.pickupDate)}<br>
-        <b>Time:</b> ${b.pickupTime || "-"}<br><br>
-
-        <b>Customer:</b> ${b.customerName || "-"} (${b.customerPhone || "-"})<br>
-        <b>Driver:</b> ${b.driverName || "-"} (${b.driverPhone || "-"})<br><br>
-
-        <b>Route:</b> ${b.pickup || "-"} → ${b.goingOn || "-"} → ${b.drop || "-"}<br><br>
-
-        <b>Cab:</b> ${b.cabType || "-"} (${b.cabNo || "-"})<br><br>
-
-        <b>Total:</b> ₹${b.totalAmount || "-"} |
-        <b>Advance:</b> ₹${b.advance || 0} |
-        <b>Balance:</b> ₹${b.balance || "-"}<br>
-        <b>Driver Collection:</b> ₹${b.driverCollection || "-"}<br><br>
-
-        <button class="btn" onclick='startTrip(${JSON.stringify(b)})'>Start Trip</button>
-      </div>`;
-    });
+    document.getElementById("list").innerHTML = "<b>No assigned bookings</b>";
+    return;
   }
 
-  document.getElementById("list").innerHTML = html;
+  let html = "";
+  filteredBookings.reverse().forEach(b => {
+    html += `
+    <div class="card">
+      <b>Trip ID:</b> ${b.tripId}<br>
+      <b>Trip Type:</b> ${b.tripType}<br>
+      <b>Date:</b> ${formatDate(b.pickupDate)}<br>
+      <b>Time:</b> ${b.pickupTime}<br><br>
 
+      <b>Customer:</b> ${b.customerName} (${b.customerPhone})<br>
+      <b>Route:</b> ${b.pickup} → ${b.goingOn} → ${b.drop}<br><br>
+
+      <b>Cab:</b> ${b.cabType} (${b.cabNo})<br><br>
+
+      <b>Total:</b> ₹${b.totalAmount} |
+      <b>Balance:</b> ₹${b.balance}<br><br>
+
+      <button class="btn" onclick='startTrip(${JSON.stringify(b)})'>
+        Start Trip
+      </button>
+    </div>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
 })
 .catch(err=>{
-  console.error("Error loading data:", err);
-  document.getElementById("list").innerHTML="<b>Error loading data</b>";
+  console.error(err);
+  document.getElementById("list").innerHTML = "Error loading data";
 });
 
 function formatDate(d){
@@ -84,10 +86,9 @@ function formatDate(d){
   return new Date(d).toLocaleDateString("en-IN");
 }
 
-// Save booking to localStorage and go to trip-start.html
 function startTrip(b){
   localStorage.setItem("activeBooking", JSON.stringify(b));
-  window.location.href="trip-start.html";
+  window.location.href = "trip-start.html";
 }
 </script>
 
