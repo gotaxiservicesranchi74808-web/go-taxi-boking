@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GO TAXI SERVICES – Driver Bookings</title>
+
+<style>
+body{font-family:Arial;background:#f4f6f8;padding:20px}
+h2{color:#1e88e5;text-align:center}
+.card{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px;box-shadow:0 0 5px rgba(0,0,0,.1)}
+.btn{padding:8px 12px;background:#1e88e5;color:#fff;border:none;border-radius:5px;cursor:pointer;margin-right:5px;margin-top:5px}
+.btn:hover{background:#1565c0}
+small{color:#555}
+</style>
+</head>
+
+<body>
+
+<h2>📋 My Assigned Bookings</h2>
+<div id="list">Loading…</div>
+
+<script>
+const driverMobile = localStorage.getItem("driverMobile");
+if(!driverMobile){
+  alert("Please login first");
+  window.location.href="driver-login.html";
+}
+
+// Existing Apps Script URL (no change)
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
+
+fetch(SCRIPT_URL)
+.then(r => r.json())
+.then(result => {
+  const bookings = result.data; // Apps Script data array
+
+  if (!Array.isArray(bookings) || bookings.length === 0) {
+    document.getElementById("list").innerHTML = "<b>No Booking Found</b>";
+    return;
+  }
+
+  let html = "";
+  let found = false;
+
+  // Driver filter applied
+  bookings.reverse().forEach(b => {
+    if(String(b.Assigned_Driver_Mobile).trim() === String(driverMobile).trim() &&
+       String(b.Trip_Status).trim() === "Assigned") {
+      found = true;
+      html += `
+        <div class="card">
+          <b>Trip ID:</b> ${b.tripId || b.Booking_ID}<br>
+          <b>Trip:</b> ${b.tripType || "-"}<br>
+          <b>Date:</b> ${formatDate(b.pickupDate)}<br>
+          <b>Time:</b> ${b.pickupTime || "-"}<br><br>
+
+          <b>Customer:</b> ${b.customerName || "-"} (${b.customerPhone || "-"})<br>
+          <b>Driver:</b> ${b.driverName || "-"} (${b.driverPhone || "-"})<br><br>
+
+          <b>Route:</b><br>
+          ${b.pickup} → ${b.goingOn || "-"} → ${b.drop}<br><br>
+
+          <b>Cab:</b> ${b.cabType || "-"}<br>
+          <b>Cab No:</b> ${b.cabNo || "-"}<br><br>
+
+          <b>Total:</b> ₹${b.totalAmount || "-"} |
+          <b>Advance:</b> ₹${b.advance || 0} |
+          <b>Balance:</b> ₹${b.balance || "-"}<br>
+          <b>Driver Collection:</b> ₹${b.driverCollection || "-"}<br><br>
+
+          <button class="btn" onclick='startTrip(${JSON.stringify(b)})'>Start Trip</button>
+        </div>
+      `;
+    }
+  });
+
+  if(!found) html="<b>No assigned bookings</b>";
+  document.getElementById("list").innerHTML = html;
+
+})
+.catch(err=>{
+  console.error("Error loading data:", err);
+  document.getElementById("list").innerHTML="<b>Error loading data</b>";
+});
+
+function formatDate(d){
+  if(!d) return "";
+  return new Date(d).toLocaleDateString("en-IN");
+}
+
+// Save selected booking to localStorage and open next page
+function startTrip(b){
+  localStorage.setItem("activeBooking", JSON.stringify(b));
+  window.location.href="trip-start.html"; // Next page for meter reading / collection
+}
+</script>
+
+</body>
+</html>
