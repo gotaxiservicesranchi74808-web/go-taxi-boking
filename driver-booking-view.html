@@ -2,8 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>GO TAXI SERVICES – Driver Bookings</title>
-
+<title>GO TAXI SERVICES – Booking View</title>
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:20px}
 h2{color:#1e88e5;text-align:center}
@@ -13,72 +12,69 @@ h2{color:#1e88e5;text-align:center}
 small{color:#555}
 </style>
 </head>
-
 <body>
 
-<h2>📋 My Assigned Bookings</h2>
+<h2>📋 Bookings</h2>
 <div id="list">Loading…</div>
 
 <script>
-const driverMobile = localStorage.getItem("driverMobile");
-if(!driverMobile){
-  alert("Please login first");
-  window.location.href="index.html";
-}
-
-// Apps Script URL
+const driverMobile = localStorage.getItem("driverMobile"); // Driver mobile from login
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
 
 fetch(SCRIPT_URL)
 .then(r => r.json())
 .then(result => {
-  const bookings = result.data; // Apps Script data array
-
+  const bookings = result.data;
   console.log("Driver Mobile:", driverMobile);
-  console.log("All Bookings from Sheet:", bookings);
+  console.log("All Bookings:", bookings);
 
   if (!Array.isArray(bookings) || bookings.length === 0) {
     document.getElementById("list").innerHTML = "<b>No Booking Found</b>";
     return;
   }
 
+  let filteredBookings = bookings;
+
+  // Driver login filter
+  if(driverMobile){
+    filteredBookings = bookings.filter(b =>
+      String(b.Assigned_Driver_Mobile || "").trim() === driverMobile.trim()
+    );
+  }
+
+  console.log("Filtered Bookings:", filteredBookings);
+
   let html = "";
-  let found = false;
-
-  // Filter driver bookings robustly
-  bookings.reverse().forEach(b => {
-    // Use string conversion + trim + lowercase for Trip_Status
-    if(String(b.Assigned_Driver_Mobile).trim() === String(driverMobile).trim() &&
-       String(b.Trip_Status || "").trim().toLowerCase() === "assigned") {
-      found = true;
+  if(filteredBookings.length === 0){
+    html = "<b>No assigned bookings</b>";
+  } else {
+    filteredBookings.reverse().forEach(b => {
       html += `
-        <div class="card">
-          <b>Trip ID:</b> ${b.tripId || b.Booking_ID || "-"}<br>
-          <b>Trip:</b> ${b.tripType || "-"}<br>
-          <b>Date:</b> ${formatDate(b.pickupDate)}<br>
-          <b>Time:</b> ${b.pickupTime || "-"}<br><br>
+      <div class="card">
+        <b>Trip ID:</b> ${b.tripId || b.Booking_ID || "-"}<br>
+        <b>Trip:</b> ${b.tripType || "-"}<br>
+        <b>Date:</b> ${formatDate(b.pickupDate)}<br>
+        <b>Time:</b> ${b.pickupTime || "-"}<br><br>
 
-          <b>Customer:</b> ${b.customerName || "-"} (${b.customerPhone || "-"})<br>
-          <b>Driver:</b> ${b.driverName || "-"} (${b.driverPhone || "-"})<br><br>
+        <b>Customer:</b> ${b.customerName || "-"} (${b.customerPhone || "-"})<br>
+        <b>Driver:</b> ${b.driverName || "-"} (${b.driverPhone || "-"})<br><br>
 
-          <b>Route:</b><br>
-          ${b.pickup || "-"} → ${b.goingOn || "-"} → ${b.drop || "-"}<br><br>
+        <b>Route:</b><br>
+        ${b.pickup || "-"} → ${b.goingOn || "-"} → ${b.drop || "-"}<br><br>
 
-          <b>Cab:</b> ${b.cabType || "-"}<br>
-          <b>Cab No:</b> ${b.cabNo || "-"}<br><br>
+        <b>Cab:</b> ${b.cabType || "-"}<br>
+        <b>Cab No:</b> ${b.cabNo || "-"}<br><br>
 
-          <b>Total:</b> ₹${b.totalAmount || "-"} |
-          <b>Advance:</b> ₹${b.advance || 0} |
-          <b>Balance:</b> ₹${b.balance || "-"}<br>
-          <b>Driver Collection:</b> ₹${b.driverCollection || "-"}<br><br>
+        <b>Total:</b> ₹${b.totalAmount || "-"} |
+        <b>Advance:</b> ₹${b.advance || 0} |
+        <b>Balance:</b> ₹${b.balance || "-"}<br>
+        <b>Driver Collection:</b> ₹${b.driverCollection || "-"}<br><br>
 
-          <button class="btn" onclick='startTrip(${JSON.stringify(b)})'>Start Trip</button>
-        </div>
-      `;
-    }
-  });
+        ${driverMobile ? `<button class="btn" onclick='startTrip(${JSON.stringify(b)})'>Start Trip</button>` : ""}
+      </div>`;
+    });
+  }
 
-  if(!found) html="<b>No assigned bookings</b>";
   document.getElementById("list").innerHTML = html;
 
 })
@@ -92,10 +88,9 @@ function formatDate(d){
   return new Date(d).toLocaleDateString("en-IN");
 }
 
-// Save selected booking to localStorage and open next page
 function startTrip(b){
   localStorage.setItem("activeBooking", JSON.stringify(b));
-  window.location.href="trip-start.html"; // Next page for meter reading / collection
+  window.location.href="trip-start.html";
 }
 </script>
 
