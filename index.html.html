@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Driver Login – GO TAXI SERVICES</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family: Arial; background:#f4f6f8; display:flex; justify-content:center; align-items:center; height:100vh; }
+  .box { background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1); width:300px; }
+  input, button { width:100%; padding:10px; margin-top:10px; font-size:16px; }
+  button { background:#28a745; color:#fff; border:none; cursor:pointer; border-radius:5px; }
+</style>
+</head>
+<body>
+
+<div class="box">
+  <h3>Driver Login</h3>
+  <input type="tel" id="driverMobile" placeholder="Enter Mobile Number">
+  <button onclick="loginDriver()">Login</button>
+</div>
+
+<script>
+function loginDriver() {
+  let mobile = document.getElementById("driverMobile").value.trim();
+  if(mobile.length !== 10){
+    alert("Enter valid 10 digit mobile number");
+    return;
+  }
+  localStorage.setItem("driverMobile", mobile);
+  window.location.href = "driver-booking-view.html";
+}
+</script>
+
+</body>
+</html>
