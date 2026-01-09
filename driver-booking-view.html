@@ -23,16 +23,19 @@ small{color:#555}
 const driverMobile = localStorage.getItem("driverMobile");
 if(!driverMobile){
   alert("Please login first");
-  window.location.href="driver-login.html";
+  window.location.href="index.html";
 }
 
-// Existing Apps Script URL (no change)
+// Apps Script URL
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
 
 fetch(SCRIPT_URL)
 .then(r => r.json())
 .then(result => {
   const bookings = result.data; // Apps Script data array
+
+  console.log("Driver Mobile:", driverMobile);
+  console.log("All Bookings from Sheet:", bookings);
 
   if (!Array.isArray(bookings) || bookings.length === 0) {
     document.getElementById("list").innerHTML = "<b>No Booking Found</b>";
@@ -42,14 +45,15 @@ fetch(SCRIPT_URL)
   let html = "";
   let found = false;
 
-  // Driver filter applied
+  // Filter driver bookings robustly
   bookings.reverse().forEach(b => {
+    // Use string conversion + trim + lowercase for Trip_Status
     if(String(b.Assigned_Driver_Mobile).trim() === String(driverMobile).trim() &&
-       String(b.Trip_Status).trim() === "Assigned") {
+       String(b.Trip_Status || "").trim().toLowerCase() === "assigned") {
       found = true;
       html += `
         <div class="card">
-          <b>Trip ID:</b> ${b.tripId || b.Booking_ID}<br>
+          <b>Trip ID:</b> ${b.tripId || b.Booking_ID || "-"}<br>
           <b>Trip:</b> ${b.tripType || "-"}<br>
           <b>Date:</b> ${formatDate(b.pickupDate)}<br>
           <b>Time:</b> ${b.pickupTime || "-"}<br><br>
@@ -58,7 +62,7 @@ fetch(SCRIPT_URL)
           <b>Driver:</b> ${b.driverName || "-"} (${b.driverPhone || "-"})<br><br>
 
           <b>Route:</b><br>
-          ${b.pickup} → ${b.goingOn || "-"} → ${b.drop}<br><br>
+          ${b.pickup || "-"} → ${b.goingOn || "-"} → ${b.drop || "-"}<br><br>
 
           <b>Cab:</b> ${b.cabType || "-"}<br>
           <b>Cab No:</b> ${b.cabNo || "-"}<br><br>
