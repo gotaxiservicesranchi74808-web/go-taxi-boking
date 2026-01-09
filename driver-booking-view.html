@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>GO TAXI SERVICES – Booking View</title>
+<title>GO TAXI SERVICES – Driver Bookings</title>
 <style>
 body{font-family:Arial;background:#f4f6f8;padding:20px}
 h2{color:#1e88e5;text-align:center}
@@ -14,33 +14,31 @@ small{color:#555}
 </head>
 <body>
 
-<h2>📋 Bookings</h2>
+<h2>📋 My Assigned Bookings</h2>
 <div id="list">Loading…</div>
 
 <script>
-const driverMobile = localStorage.getItem("driverMobile"); // Driver mobile from login
+const driverMobile = (localStorage.getItem("driverMobile") || "").trim();
+if(!driverMobile){
+  alert("Please login first");
+  window.location.href="index.html";
+}
+
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
 
 fetch(SCRIPT_URL)
 .then(r => r.json())
 .then(result => {
   const bookings = result.data;
+
   console.log("Driver Mobile:", driverMobile);
   console.log("All Bookings:", bookings);
 
-  if (!Array.isArray(bookings) || bookings.length === 0) {
-    document.getElementById("list").innerHTML = "<b>No Booking Found</b>";
-    return;
-  }
-
-  let filteredBookings = bookings;
-
-  // Driver login filter
-  if(driverMobile){
-    filteredBookings = bookings.filter(b =>
-      String(b.Assigned_Driver_Mobile || "").trim() === driverMobile.trim()
-    );
-  }
+  // Filter by driver mobile and Trip_Status = Assigned
+  const filteredBookings = bookings.filter(b => 
+    String(b.Assigned_Driver_Mobile || "").trim() === driverMobile &&
+    String(b.Trip_Status || "").trim() === "Assigned"
+  );
 
   console.log("Filtered Bookings:", filteredBookings);
 
@@ -51,26 +49,24 @@ fetch(SCRIPT_URL)
     filteredBookings.reverse().forEach(b => {
       html += `
       <div class="card">
-        <b>Trip ID:</b> ${b.tripId || b.Booking_ID || "-"}<br>
-        <b>Trip:</b> ${b.tripType || "-"}<br>
+        <b>Trip ID:</b> ${b.tripId || "-"}<br>
+        <b>Trip Type:</b> ${b.tripType || "-"}<br>
         <b>Date:</b> ${formatDate(b.pickupDate)}<br>
         <b>Time:</b> ${b.pickupTime || "-"}<br><br>
 
         <b>Customer:</b> ${b.customerName || "-"} (${b.customerPhone || "-"})<br>
         <b>Driver:</b> ${b.driverName || "-"} (${b.driverPhone || "-"})<br><br>
 
-        <b>Route:</b><br>
-        ${b.pickup || "-"} → ${b.goingOn || "-"} → ${b.drop || "-"}<br><br>
+        <b>Route:</b> ${b.pickup || "-"} → ${b.goingOn || "-"} → ${b.drop || "-"}<br><br>
 
-        <b>Cab:</b> ${b.cabType || "-"}<br>
-        <b>Cab No:</b> ${b.cabNo || "-"}<br><br>
+        <b>Cab:</b> ${b.cabType || "-"} (${b.cabNo || "-"})<br><br>
 
         <b>Total:</b> ₹${b.totalAmount || "-"} |
         <b>Advance:</b> ₹${b.advance || 0} |
         <b>Balance:</b> ₹${b.balance || "-"}<br>
         <b>Driver Collection:</b> ₹${b.driverCollection || "-"}<br><br>
 
-        ${driverMobile ? `<button class="btn" onclick='startTrip(${JSON.stringify(b)})'>Start Trip</button>` : ""}
+        <button class="btn" onclick='startTrip(${JSON.stringify(b)})'>Start Trip</button>
       </div>`;
     });
   }
@@ -88,6 +84,7 @@ function formatDate(d){
   return new Date(d).toLocaleDateString("en-IN");
 }
 
+// Save booking to localStorage and go to trip-start.html
 function startTrip(b){
   localStorage.setItem("activeBooking", JSON.stringify(b));
   window.location.href="trip-start.html";
