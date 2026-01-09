@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GO TAXI SERVICES – Trip Start</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{font-family:Arial;background:#f4f6f8;padding:20px}
+h2{color:#1e88e5;text-align:center}
+.box{background:#fff;padding:20px;border-radius:8px;box-shadow:0 0 5px rgba(0,0,0,.1);max-width:400px;margin:20px auto;}
+input, button{width:100%;padding:10px;margin:8px 0;font-size:16px;}
+button{background:#28a745;color:#fff;border:none;border-radius:5px;cursor:pointer;}
+button:hover{background:#218838;}
+</style>
+</head>
+
+<body>
+
+<h2>🚖 Trip Details</h2>
+
+<div class="box">
+  <p id="tripInfo">Loading booking…</p>
+
+  <label>Start Meter Reading:</label>
+  <input type="number" id="startMeter" placeholder="Enter start meter reading">
+
+  <label>End Meter Reading:</label>
+  <input type="number" id="endMeter" placeholder="Enter end meter reading">
+
+  <label>Collection Amount (₹):</label>
+  <input type="number" id="collection" placeholder="Enter collection amount">
+
+  <button onclick="submitTrip()">Submit Trip</button>
+</div>
+
+<script>
+const booking = JSON.parse(localStorage.getItem("activeBooking"));
+const driverMobile = localStorage.getItem("driverMobile");
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
+
+if(!booking || !driverMobile){
+  alert("Booking data not found. Login first.");
+  window.location.href="index.html";
+}
+
+document.getElementById("tripInfo").innerHTML = `
+<b>Trip ID:</b> ${booking.tripId || booking.Booking_ID || "-"}<br>
+<b>Customer:</b> ${booking.customerName || "-"} (${booking.customerPhone || "-"})<br>
+<b>Route:</b> ${booking.pickup || "-"} → ${booking.goingOn || "-"} → ${booking.drop || "-"}<br>
+<b>Cab:</b> ${booking.cabType || "-"} (${booking.cabNo || "-"})
+`;
+
+function submitTrip(){
+  const startMeter = document.getElementById("startMeter").value.trim();
+  const endMeter = document.getElementById("endMeter").value.trim();
+  const collection = document.getElementById("collection").value.trim();
+
+  if(!startMeter || !endMeter || !collection){
+    alert("Please fill all fields");
+    return;
+  }
+
+  // Prepare payload
+  const payload = {
+    Trip_ID: booking.tripId || booking.Booking_ID,
+    Driver_Mobile: driverMobile,
+    Start_Meter: startMeter,
+    End_Meter: endMeter,
+    Collection: collection,
+    Timestamp: new Date().toLocaleString()
+  };
+
+  fetch(SHEET_URL, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    headers: { "Content-Type": "application/json" }
+  })
+  .then(r => r.json())
+  .then(res => {
+    if(res.status === "SUCCESS"){
+      alert("Trip data submitted successfully!");
+      localStorage.removeItem("activeBooking");
+      window.location.href="index.html";
+    } else {
+      alert("Error submitting trip: " + (res.message || "Unknown error"));
+    }
+  })
+  .catch(err=>{
+    console.error("Submit error:", err);
+    alert("Error submitting trip data");
+  });
+}
+</script>
+
+</body>
+</html>
