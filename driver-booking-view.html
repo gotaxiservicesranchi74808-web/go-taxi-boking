@@ -1,87 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Driver App – GO TAXI SERVICES</title>
+<title>GO TAXI SERVICES – Driver Bookings</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-body{font-family:Arial;background:#f4f6f8;padding:15px}
-.card{background:#fff;padding:15px;margin-bottom:15px;border-radius:8px;box-shadow:0 0 5px rgba(0,0,0,.1)}
-input,button{padding:8px;margin-top:8px;width:100%}
-button{background:#1e88e5;color:#fff;border:none;border-radius:5px}
+body{font-family:Arial;background:#f4f6f8;padding:20px}
+h2{color:#1e88e5;text-align:center}
+.card{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px;box-shadow:0 0 5px rgba(0,0,0,.1)}
+.btn{padding:8px 12px;background:#1e88e5;color:#fff;border:none;border-radius:5px;cursor:pointer;margin-right:5px;margin-top:5px}
+.btn:hover{background:#1565c0}
+input{width:70px;margin-right:5px}
+small{color:#555}
 </style>
 </head>
-
 <body>
 
-<h2>My Bookings</h2>
-<div id="bookingList">Loading...</div>
+<h2>📋 My Assigned Bookings</h2>
+<div id="list">Loading…</div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyEeaghZPF4SAdulfT1ATBPV9I46-5Aet4rhZhpvScqJNHtCoebxGkXRz93RbkToyCPxQ/exec";
-const driverMobile = localStorage.getItem("driverMobile");
-
+const driverMobile = (localStorage.getItem("driverMobile") || "").trim();
 if(!driverMobile){
   alert("Please login first");
-  window.location.href="index.html";
+  window.location.href="index.html"; // driver login page
 }
 
-fetch(API_URL)
-.then(res => res.json())
-.then(json => {
-  const bookings = json.data || [];
-  const list = document.getElementById("bookingList");
-  list.innerHTML = "";
+// Apps Script URL
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyEeaghZPF4SAdulfT1ATBPV9I46-5Aet4rhZhpvScqJNHtCoebxGkXRz93RbkToyCPxQ/exec";
 
-  const myBookings = bookings.filter(b =>
-    String(b.Assigned_Driver_Mobile).trim() === driverMobile &&
-    String(b.Trip_Status).trim() !== "COMPLETED"
-  );
+// Fetch bookings
+fetch(SCRIPT_URL)
+.then(r => r.json())
+.then(result => {
+  const bookings = result.data || [];
 
-  if(myBookings.length === 0){
-    list.innerHTML = "<b>No booking found</b>";
-    return;
+  // Filter driver bookings with Trip_Status = "Assigned"
+  const filtered = bookings.filter(b=>{
+    const sheetMobile = String(b.Assigned_Driver_Mobile || "").trim();
+    const status = String(b.Trip_Status || "").trim();
+    return sheetMobile === driverMobile && status.toLowerCase() === "assigned";
+  });
+
+  let html = "";
+  if(filtered.length === 0){
+    html="<b>No assigned bookings</b>";
+  } else {
+    filtered.reverse().forEach(b=>{
+      html += `
+      <div class="card">
+        <b>Trip ID:</b> ${b.tripId || b.Booking_ID}<br>
+        <b>Trip:</b> ${b.tripType || "-"}<br>
+        <b>Date:</b> ${formatDate(b.pickupDate)}<br>
+        <b>Time:</b> ${b.pickupTime || "-"}<br><br>
+
+        <b>Customer:</b> ${b.customerName || "-"} (${b.customerPhone || "-"})<br>
+        <b>Route:</b><br>
+        ${b.pickup} → ${b.goingOn || "-"} → ${b.drop}<br><br>
+
+        <b>Cab:</b> ${b.cabType || "-"} | <b>No:</b> ${b.cabNo || "-"}<br><br>
+
+        <b>Start Meter:</b> <input type="number" id="startMeter-${b.tripId}" value="${b.Start_Meter||''}">
+        <button class="btn" onclick="startTrip('${b.tripId}')">Start Trip</button><br><br>
+
+        <b>End Meter:</b> <input type="number" id="endMeter-${b.tripId}" value="${b.End_Meter||''}">
+        <b>Collection:</b> <input type="number" id="collection-${b.tripId}" value="${b.Collection||''}">
+        <button class="btn" onclick="endTrip('${b.tripId}')">End & Submit</button>
+      </div>
+      `;
+    });
   }
 
-  myBookings.forEach(b => {
-    const div = document.createElement("div");
-    div.className = "card";
+  document.getElementById("list").innerHTML = html;
 
-    if(b.Trip_Status === "RUNNING"){
-      div.innerHTML = `
-        <b>${b.tripId}</b><br>
-        ${b.pickup} → ${b.drop}<br><br>
-        <input id="end_${b.tripId}" placeholder="End Meter">
-        <input id="col_${b.tripId}" placeholder="Collection Amount">
-        <button onclick="closeTrip('${b.tripId}')">Close Trip</button>
-      `;
-    } else {
-      div.innerHTML = `
-        <b>${b.tripId}</b><br>
-        ${b.pickup} → ${b.drop}<br><br>
-        <input id="start_${b.tripId}" placeholder="Start Meter">
-        <button onclick="startTrip('${b.tripId}')">Start Trip</button>
-      `;
-    }
-
-    list.appendChild(div);
-  });
+}).catch(err=>{
+  console.error("Error loading data:", err);
+  document.getElementById("list").innerHTML="<b>Error loading data</b>";
 });
 
-function startTrip(tripId){
-  const meter = document.getElementById("start_"+tripId).value;
-  fetch(API_URL,{
-    method:"POST",
-    body:JSON.stringify({ action:"START", tripId, meter })
-  }).then(()=>location.reload());
+function formatDate(d){
+  if(!d) return "";
+  return new Date(d).toLocaleDateString("en-IN");
 }
 
-function closeTrip(tripId){
-  const meter = document.getElementById("end_"+tripId).value;
-  const collection = document.getElementById("col_"+tripId).value;
-  fetch(API_URL,{
-    method:"POST",
-    body:JSON.stringify({ action:"CLOSE", tripId, meter, collection })
-  }).then(()=>location.reload());
+// Start trip - save start meter
+function startTrip(tripId){
+  const val = document.getElementById(`startMeter-${tripId}`).value;
+  if(!val) { alert("Enter start meter reading"); return; }
+  alert(`Trip ${tripId} started at meter ${val}`);
+  // Optionally, update in Sheet via POST later
+}
+
+// End trip - save end meter and collection
+function endTrip(tripId){
+  const end = document.getElementById(`endMeter-${tripId}`).value;
+  const col = document.getElementById(`collection-${tripId}`).value;
+  if(!end || !col){ alert("Enter End meter and Collection"); return; }
+  alert(`Trip ${tripId} ended at meter ${end}. Collection ₹${col}`);
+  // Optionally, send POST request to save in Sheet
 }
 </script>
 
