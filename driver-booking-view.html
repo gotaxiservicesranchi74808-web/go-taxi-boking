@@ -1,8 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GO TAXI SERVICES – Driver Bookings</title>
+
+<style>
+body{font-family:Arial;background:#f4f6f8;padding:20px}
+h2{color:#1e88e5;text-align:center}
+.card{
+  background:#fff;
+  padding:15px;
+  border-radius:8px;
+  margin-bottom:15px;
+  box-shadow:0 0 5px rgba(0,0,0,.1)
+}
+.btn{
+  padding:8px 12px;
+  background:#1e88e5;
+  color:#fff;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h2>📋 My Bookings</h2>
+
+<!-- 🔴 THIS WAS MISSING – NOW FIXED -->
+<div id="list">Loading…</div>
+
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
 
 const driverMobile = (localStorage.getItem("driverMobile") || "").trim();
 console.log("Driver Mobile:", driverMobile);
+
+if(!driverMobile){
+  alert("Please login first");
+  window.location.href="index.html";
+}
 
 fetch(SCRIPT_URL)
 .then(r => r.json())
@@ -10,20 +50,20 @@ fetch(SCRIPT_URL)
 
   console.log("All bookings:", bookings);
 
-  const filteredBookings = bookings.filter(b => {
-    const phone = String(b.driverPhone || "").trim();
-    return phone === driverMobile;
-  });
+  const filtered = bookings.filter(b =>
+    String(b.driverPhone || "").trim() === driverMobile
+  );
 
-  console.log("Filtered bookings:", filteredBookings);
+  console.log("Filtered bookings:", filtered);
 
-  if(filteredBookings.length === 0){
-    document.getElementById("list").innerHTML = "<b>No booking found</b>";
+  if(filtered.length === 0){
+    document.getElementById("list").innerHTML =
+      "<b>No booking found</b>";
     return;
   }
 
   let html = "";
-  filteredBookings.forEach(b => {
+  filtered.forEach(b => {
     html += `
       <div class="card">
         <b>Trip ID:</b> ${b.tripId}<br>
@@ -48,11 +88,16 @@ fetch(SCRIPT_URL)
 })
 .catch(err=>{
   console.error(err);
-  document.getElementById("list").innerHTML = "Error loading data";
+  document.getElementById("list").innerHTML =
+    "<b>Error loading data</b>";
 });
 
 function startTrip(b){
   localStorage.setItem("activeBooking", JSON.stringify(b));
-  window.location.href = "trip-start.html";
+  alert("Trip Started for " + b.tripId);
+  // next page later
 }
 </script>
+
+</body>
+</html>
