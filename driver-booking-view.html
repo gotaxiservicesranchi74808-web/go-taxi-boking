@@ -1,76 +1,46 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>GO TAXI SERVICES – Driver Bookings</title>
-
-<style>
-body{font-family:Arial;background:#f4f6f8;padding:20px}
-h2{color:#1e88e5;text-align:center}
-.card{background:#fff;padding:15px;border-radius:8px;margin-bottom:15px;box-shadow:0 0 5px rgba(0,0,0,.1)}
-.btn{padding:8px 12px;background:#1e88e5;color:#fff;border:none;border-radius:5px;cursor:pointer;margin-top:10px}
-.btn:hover{background:#1565c0}
-</style>
-</head>
-
-<body>
-
-<h2>📋 My Assigned Bookings</h2>
-<div id="list">Loading…</div>
-
 <script>
-const driverMobile = (localStorage.getItem("driverMobile") || "").trim();
-if(!driverMobile){
-  alert("Please login first");
-  window.location.href = "index.html";
-}
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz8KlhAXfQiAPqnvad-vNgtnD_SM4CEbZudneBRCDmoF8v3tPvTvvDwGCGXQzDw7nkiEw/exec";
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAb7zcLlk3j-S7bqVCvFROu2npYU-31524kalV9meMWWpn7UZ6CNnwQBT_saC5aNMzYA/exec";
+const driverMobile = (localStorage.getItem("driverMobile") || "").trim();
+console.log("Driver Mobile:", driverMobile);
 
 fetch(SCRIPT_URL)
-.then(res => res.json())
-.then(result => {
+.then(r => r.json())
+.then(bookings => {
 
-  const bookings = result.data || [];
-
-  console.log("Driver Mobile:", driverMobile);
   console.log("All bookings:", bookings);
 
-  // 🔥 FINAL ROBUST FILTER (tumhara wala)
   const filteredBookings = bookings.filter(b => {
-    const sheetMobile = String(b.Assigned_Driver_Mobile || "").trim();
-    const status = String(b.Trip_Status || "").trim();
-    return sheetMobile === driverMobile && status.toLowerCase() === "assigned";
+    const phone = String(b.driverPhone || "").trim();
+    return phone === driverMobile;
   });
 
   console.log("Filtered bookings:", filteredBookings);
 
   if(filteredBookings.length === 0){
-    document.getElementById("list").innerHTML = "<b>No assigned bookings</b>";
+    document.getElementById("list").innerHTML = "<b>No booking found</b>";
     return;
   }
 
   let html = "";
-  filteredBookings.reverse().forEach(b => {
+  filteredBookings.forEach(b => {
     html += `
-    <div class="card">
-      <b>Trip ID:</b> ${b.tripId}<br>
-      <b>Trip Type:</b> ${b.tripType}<br>
-      <b>Date:</b> ${formatDate(b.pickupDate)}<br>
-      <b>Time:</b> ${b.pickupTime}<br><br>
+      <div class="card">
+        <b>Trip ID:</b> ${b.tripId}<br>
+        <b>Trip:</b> ${b.tripType}<br>
+        <b>Date:</b> ${new Date(b.pickupDate).toLocaleDateString("en-IN")}<br>
+        <b>Time:</b> ${b.pickupTime}<br><br>
 
-      <b>Customer:</b> ${b.customerName} (${b.customerPhone})<br>
-      <b>Route:</b> ${b.pickup} → ${b.goingOn} → ${b.drop}<br><br>
+        <b>Customer:</b> ${b.customerName} (${b.customerPhone})<br>
+        <b>Route:</b> ${b.pickup} → ${b.drop}<br><br>
 
-      <b>Cab:</b> ${b.cabType} (${b.cabNo})<br><br>
+        <b>Cab:</b> ${b.cabType} (${b.cabNo})<br>
+        <b>Total:</b> ₹${b.totalAmount}<br><br>
 
-      <b>Total:</b> ₹${b.totalAmount} |
-      <b>Balance:</b> ₹${b.balance}<br><br>
-
-      <button class="btn" onclick='startTrip(${JSON.stringify(b)})'>
-        Start Trip
-      </button>
-    </div>
+        <button class="btn" onclick='startTrip(${JSON.stringify(b)})'>
+          Start Trip
+        </button>
+      </div>
     `;
   });
 
@@ -81,17 +51,8 @@ fetch(SCRIPT_URL)
   document.getElementById("list").innerHTML = "Error loading data";
 });
 
-function formatDate(d){
-  if(!d) return "";
-  return new Date(d).toLocaleDateString("en-IN");
-}
-
 function startTrip(b){
   localStorage.setItem("activeBooking", JSON.stringify(b));
   window.location.href = "trip-start.html";
 }
 </script>
-
-</body>
-</html>
-
